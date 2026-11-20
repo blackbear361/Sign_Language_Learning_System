@@ -1,0 +1,63 @@
+@page
+@model Sign_Language_Learning_System.Pages.SignupModel
+@{
+    ViewData["Title"] = "Join SignLearn";
+}
+
+<div class="sl-auth">
+    <div class="sl-card p-0 overflow-hidden">
+        <div class="row g-0">
+            <div class="col-md-5 sl-auth-side">
+                <div>
+                    <h2 class="mb-3">Your first sign is five minutes away.</h2>
+                    <p class="mb-0">A free account opens every lesson, quiz and your own progress tracker.</p>
+                </div>
+                <ul class="list-unstyled mb-0 d-flex flex-column gap-2 fw-bold">
+                    <li>✓ 7 everyday topics</li>
+                    <li>✓ Friendly quiz feedback</li>
+                    <li>✓ Learn at your own pace</li>
+                </ul>
+            </div>
+
+            <div class="col-md-7 sl-auth-form">
+                <form method="post">
+                    <h1 class="h2 mb-1">Create your account</h1>
+                    <p class="text-muted mb-4">It takes less than a minute.</p>
+
+                    @if (!string.IsNullOrWhiteSpace(Model.Message))
+                    {
+                        <div class="alert @(Model.RegistrationSuccessful ? "signup-success-message" : "alert-danger")" role="status">@Model.Message</div>
+                    }
+
+                    <div class="mb-3">
+                        <label asp-for="FullName" class="form-label">Full name</label>
+                        <input asp-for="FullName" class="form-control" autocomplete="name" required placeholder="What should we call you?" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Email" class="form-label">Email</label>
+                        <input asp-for="Email" type="email" class="form-control" autocomplete="username" required placeholder="you@example.com" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Password" class="form-label">Password</label>
+                        <input asp-for="Password" type="password" class="form-control" autocomplete="new-password" required aria-describedby="pwHelp" />
+                        <div id="pwHelp" class="form-text">Choose a password you can keep secure.</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="ConfirmPassword" class="form-label">Confirm password</label>
+                        <input asp-for="ConfirmPassword" type="password" class="form-control" autocomplete="new-password" required />
+                    </div>
+
+                    <button type="submit" class="w-100 btn btn-lg btn-accent">Create account</button>
+
+                    <p class="text-center text-muted mt-4 mb-0">
+                        Already have an account?
+                        <a class="fw-bold" asp-page="/Login">Log in</a>
+                    </p>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,196 @@
+@page
+@model Sign_Language_Learning_System.Pages.QuizModel
+@using Sign_Language_Learning_System.Models
+@{
+    var inQuiz = Model.Questions.Count > 0;
+    ViewData["Title"] = inQuiz ? $"{Model.Questions[0].Lesson.Category} quiz" : "Quizzes";
+    var keys = new[] { "A", "B", "C", "D" };
+}
+
+@if (!inQuiz)
+{
+    <div class="sl-page-header">
+        <h1>Quizzes</h1>
+        <p>Pick a topic and see how many signs you remember. Each quiz only takes a couple of minutes.</p>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+    {
+        <div class="alert alert-info" role="status">@Model.StatusMessage</div>
+    }
+
+    @if (Model.Topics.Count == 0)
+    {
+        <div class="sl-card sl-card-lg text-center">
+            <h2 class="h3">No quizzes yet</h2>
+            <p class="text-muted">Quizzes appear here once lessons have questions. In the meantime, keep learning!</p>
+            <a asp-page="/Lessons" class="btn btn-primary">Go to lessons</a>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var topic in Model.Topics)
+            {
+                var minutes = Math.Max(1, (int)Math.Ceiling(topic.QuestionCount / 3.0));
+                <div class="col-sm-6 col-lg-4">
+                    <div class="sl-card h-100 d-flex flex-column gap-2">
+                        <div class="d-flex justify-content-between align-items-start gap-2">
+                            <h2 class="h4 mb-0">@topic.Category</h2>
+                            @if (topic.BestPercent is int best)
+                            {
+                                <span class="sl-badge @(best >= QuizResult.PassMark ? "sl-badge-pass" : "sl-badge-practice")">Best @(best)%</span>
+                            }
+                            else
+                            {
+                                <span class="sl-badge sl-badge-info">New</span>
+                            }
+                        </div>
+                        <p class="text-muted mb-3">
+                            @topic.QuestionCount @(topic.QuestionCount == 1 ? "question" : "questions") · about @minutes min
+                            @if (topic.Attempts > 0)
+                            {
+                                <span>· tried @topic.Attempts @(topic.Attempts == 1 ? "time" : "times")</span>
+                            }
+                        </p>
+                        <a class="btn @(topic.Attempts == 0 ? "btn-primary" : "btn-outline-primary") mt-auto align-self-start" asp-page="/Quiz" asp-route-topic="@topic.Category">
+                            @(topic.Attempts == 0 ? "Start quiz" : "Try again")
+                        </a>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+}
+else
+{
+    var answered = Model.Questions.Count(question => Model.Answers.ContainsKey(question.Id));
+    var percent = (int)Math.Round(answered * 100.0 / Model.Questions.Count);
+
+    <div class="sl-quiz-wrap">
+        <div class="sl-page-header">
+            <a asp-page="/Quiz" class="fw-bold text-decoration-none">← All quizzes</a>
+            <h1 class="mt-2">@Model.Questions[0].Lesson.Category quiz</h1>
+            <p>@Model.Questions.Count questions · Take your time — there's no clock.</p>
+        </div>
+
+        <div class="sl-card p-3 mb-4 sl-quiz-progress">
+            <div class="d-flex justify-content-between fw-bold mb-2">
+                <span>Your progress</span>
+                <span aria-live="polite"><span id="answeredCount">@answered</span> of @Model.Questions.Count answered</span>
+            </div>
+            <div class="progress sl-progress" role="progressbar" aria-label="Questions answered" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@percent">
+                <div id="answeredBar" class="progress-bar" style="width: @(percent)%"></div>
+            </div>
+        </div>
+
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+        <div id="quizClientError" class="alert alert-danger d-none" role="alert"></div>
+
+        <form method="post" id="quizForm" novalidate>
+            <input type="hidden" asp-for="Topic" />
+
+            @for (var i = 0; i < Model.Questions.Count; i++)
+            {
+                var question = Model.Questions[i];
+                Model.Answers.TryGetValue(question.Id, out var chosen);
+                var missing = Model.UnansweredIds.Contains(question.Id);
+
+                <div class="sl-card sl-question mb-4 @(missing ? "is-unanswered" : "")" id="@($"question-{question.Id}")" data-question>
+                <fieldset class="border-0 p-0 m-0">
+                    <legend class="sl-question-legend">
+                        <span class="sl-question-number">Question @(i + 1) of @Model.Questions.Count</span>
+                        <span class="sl-question-text">@question.QuestionText</span>
+                    </legend>
+
+                    @if (!string.IsNullOrWhiteSpace(question.ImageUrl))
+                    {
+                        <figure class="sl-question-figure">
+                            <img src="@question.ImageUrl" alt="A hand sign. Choose what it means." class="sl-question-img" loading="lazy" />
+                            @if (!string.IsNullOrWhiteSpace(question.ImageCredit))
+                            {
+                                <figcaption>@question.ImageCredit</figcaption>
+                            }
+                        </figure>
+                    }
+
+                    @if (SignVideo.EmbedUrl(question.VideoUrl) is string youTubeEmbed)
+                    {
+                        <div class="sl-video">
+                            <iframe src="@youTubeEmbed" title="@($"Sign video for question {i + 1}")" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+                        </div>
+                    }
+                    else if (SignVideo.IsUploadedClip(question.VideoUrl))
+                    {
+                        <video class="sl-question-video" src="@question.VideoUrl" controls loop muted playsinline preload="metadata" aria-label="@($"Sign video for question {i + 1}")"></video>
+                    }
+
+                    <div class="row g-3">
+                        @foreach (var key in keys)
+                        {
+                            var inputId = $"q{question.Id}{key}";
+                            <div class="col-md-6">
+                                <input type="radio" class="btn-check" name="@($"Answers[{question.Id}]")" id="@inputId" value="@key" checked="@(chosen == key)" />
+                                <label class="sl-quiz-option" for="@inputId">
+                                    <span class="sl-quiz-key">@key</span>
+                                    <span>@question.OptionText(key)</span>
+                                </label>
+                            </div>
+                        }
+                    </div>
+                    <p class="sl-question-error">Choose an answer for this question.</p>
+                </fieldset>
+                </div>
+            }
+
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <a asp-page="/Quiz" class="btn btn-outline-secondary">Leave quiz</a>
+                <button type="submit" class="btn btn-primary btn-lg">Finish quiz</button>
+            </div>
+        </form>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        // Client-side validation and live progress for the quiz form.
+        (function () {
+            var form = document.getElementById('quizForm');
+            if (!form) return;
+            var sets = Array.prototype.slice.call(form.querySelectorAll('[data-question]'));
+            var countEl = document.getElementById('answeredCount');
+            var bar = document.getElementById('answeredBar');
+            var errorBox = document.getElementById('quizClientError');
+
+            function isAnswered(set) { return !!set.querySelector('input[type=radio]:checked'); }
+
+            function updateProgress() {
+                var done = sets.filter(isAnswered).length;
+                countEl.textContent = done;
+                bar.style.width = Math.round(done * 100 / sets.length) + '%';
+                bar.parentElement.setAttribute('aria-valuenow', Math.round(done * 100 / sets.length));
+                if (done === sets.length) errorBox.classList.add('d-none');
+            }
+
+            form.addEventListener('change', function (event) {
+                var set = event.target.closest('[data-question]');
+                if (set) set.classList.remove('is-unanswered');
+                updateProgress();
+            });
+
+            form.addEventListener('submit', function (event) {
+                var missing = sets.filter(function (set) { return !isAnswered(set); });
+                if (missing.length === 0) return;
+                event.preventDefault();
+                missing.forEach(function (set) { set.classList.add('is-unanswered'); });
+                errorBox.textContent = missing.length === 1
+                    ? 'One question still needs an answer.'
+                    : missing.length + ' questions still need an answer.';
+                errorBox.classList.remove('d-none');
+                missing[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                var firstInput = missing[0].querySelector('input');
+                if (firstInput) firstInput.focus({ preventScroll: true });
+            });
+        })();
+    </script>
+}

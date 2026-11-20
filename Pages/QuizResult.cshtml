@@ -1,0 +1,79 @@
+@page
+@model Sign_Language_Learning_System.Pages.QuizResultModel
+@{
+    ViewData["Title"] = "Quiz result";
+    var result = Model.Result;
+    var percent = result.Percent;
+    var headline = percent == 100 ? "Perfect score — amazing!"
+        : result.Passed ? $"Nice one! You're getting the hang of {result.Category}."
+        : $"Good effort — {result.Category} needs a little more practice.";
+    var wrong = Model.Review.Count(item => !item.IsCorrect);
+}
+
+<div class="mx-auto" style="max-width: 920px">
+    <section class="sl-card sl-card-lg mt-5 mb-4 d-flex flex-wrap align-items-center gap-4 gap-md-5">
+        <div class="sl-score-ring" style="background: conic-gradient(var(--sl-primary) 0 @(percent)%, var(--sl-track) @(percent)% 100%)"
+             role="img" aria-label="@($"Score {result.Score} out of {result.TotalQuestions}")">
+            <div class="sl-score-ring-inner">
+                <span class="sl-score-ring-value">@result.Score/@result.TotalQuestions</span>
+                <span class="text-muted">@(percent)%</span>
+            </div>
+        </div>
+        <div class="flex-grow-1" style="flex-basis: 320px">
+            <span class="sl-badge @(result.Passed ? "sl-badge-pass" : "sl-badge-practice") mb-2">@(result.Passed ? "Passed" : "Keep practising")</span>
+            <h1 class="h2 mb-2">@headline</h1>
+            <p class="text-muted mb-3">
+                @result.Category quiz · Attempt @Model.AttemptNumber · @result.AttemptedAtUtc.ToLocalTime().ToString("d MMM yyyy, h:mm tt") · Best score @(Model.BestPercent)%
+            </p>
+            <div class="d-flex flex-wrap gap-2">
+                <a class="btn btn-primary" asp-page="/Quiz" asp-route-topic="@result.Category">Try again</a>
+                <a class="btn btn-outline-primary" asp-page="/MyResults">All my results</a>
+                <a class="btn btn-outline-secondary" asp-page="/Lessons">Back to lessons</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="sl-card mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <h2 class="h3 mb-0">Review your answers</h2>
+            <span class="text-muted">@(Model.Review.Count - wrong) correct · @wrong to practise</span>
+        </div>
+
+        @if (Model.Review.Count == 0)
+        {
+            <p class="text-muted mb-0">The questions from this attempt have since been removed by an administrator.</p>
+        }
+
+        <ol class="list-unstyled d-flex flex-column gap-3 mb-0">
+            @foreach (var item in Model.Review)
+            {
+                <li class="sl-review-item @(item.IsCorrect ? "is-correct" : "is-wrong")">
+                    <div class="d-flex flex-wrap justify-content-between gap-2">
+                        <span class="fw-bold d-flex align-items-center gap-3">
+                            @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
+                            {
+                                <img src="@item.ImageUrl" alt="" class="sl-thumb" loading="lazy" />
+                            }
+                            <span>@($"Q{item.Number}.") @item.Question</span>
+                        </span>
+                        <span class="sl-badge @(item.IsCorrect ? "sl-badge-pass" : "sl-badge-danger")">@(item.IsCorrect ? "Correct" : "Not quite")</span>
+                    </div>
+                    <div class="mt-1 text-muted">
+                        @if (item.IsCorrect)
+                        {
+                            <span>Your answer: <strong>@item.YourAnswer</strong></span>
+                        }
+                        else
+                        {
+                            <span>
+                                Your answer: <strong>@(item.YourAnswer ?? "—")</strong> ·
+                                Correct answer: <strong>@item.CorrectAnswer</strong> ·
+                                <a asp-page="/Lessons">Review the "@item.LessonTitle" lesson</a>
+                            </span>
+                        }
+                    </div>
+                </li>
+            }
+        </ol>
+    </section>
+</div>

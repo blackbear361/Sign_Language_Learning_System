@@ -1,0 +1,167 @@
+@page
+@model Sign_Language_Learning_System.Pages.LessonsModel
+@{
+    ViewData["Title"] = "Lessons";
+    var percent = Model.TotalPublishedLessons == 0
+        ? 0
+        : (int)Math.Round(Model.CompletedLessons * 100.0 / Model.TotalPublishedLessons);
+    var firstLesson = Model.TotalLessons == 0 ? 0 : (Model.PageNumber - 1) * 10 + 1;
+    var lastLesson = Math.Min(Model.PageNumber * 10, Model.TotalLessons);
+}
+
+<div class="sl-page-header d-flex flex-wrap justify-content-between align-items-end gap-4">
+    <div>
+        <h1>Signs for everyday moments</h1>
+        <p>Find a lesson, practise the sign, then mark it as learned.</p>
+    </div>
+    @if (Model.TotalPublishedLessons > 0)
+    {
+        <div style="min-width: 260px">
+            <div class="d-flex justify-content-between fw-bold mb-1">
+                <span>Your progress</span>
+                <span>@Model.CompletedLessons / @Model.TotalPublishedLessons lessons</span>
+            </div>
+            <div class="progress sl-progress" role="progressbar" aria-label="Lessons learned"
+                 aria-valuenow="@percent" aria-valuemin="0" aria-valuemax="100">
+                <div class="progress-bar" style="width: @percent%"></div>
+            </div>
+        </div>
+    }
+</div>
+
+<form method="get" class="sl-card mb-4">
+    <div class="row g-3 align-items-end">
+        <div class="col-md-7">
+            <label for="lesson-search" class="form-label">Search lessons</label>
+            <input id="lesson-search" type="search" name="Search" value="@Model.Search" class="form-control"
+                   placeholder="Search title, category or instructions" />
+        </div>
+        <div class="col-md-3">
+            <label for="lesson-category" class="form-label">Category</label>
+            <select id="lesson-category" name="Category" class="form-select">
+                <option value="">All categories</option>
+                @foreach (var category in Model.Categories)
+                {
+                    <option value="@category" selected="@(string.Equals(Model.Category, category, StringComparison.OrdinalIgnoreCase))">
+                        @category
+                    </option>
+                }
+            </select>
+        </div>
+        <div class="col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-grow-1">Search</button>
+            <a asp-page="/Lessons" class="btn btn-outline-secondary">Clear</a>
+        </div>
+    </div>
+</form>
+
+@if (Model.Lessons.Count == 0)
+{
+    <div class="alert alert-info">
+        @(Model.TotalPublishedLessons == 0
+            ? "There are no lessons yet — new ones are on the way. Check back soon."
+            : "No lessons match your search and category filter.")
+    </div>
+}
+else
+{
+    @foreach (var group in Model.Lessons.GroupBy(lesson => lesson.Category))
+    {
+        <section class="mb-5" aria-labelledby="cat-@group.First().Id">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <h2 id="cat-@group.First().Id" class="h3 mb-0">@group.Key</h2>
+                @if (Model.QuizCategories.Contains(group.Key))
+                {
+                    <a class="btn btn-sm btn-outline-primary" asp-page="/Quiz" asp-route-topic="@group.Key">
+                        Try the @group.Key quiz
+                    </a>
+                }
+            </div>
+            <div class="row g-4">
+                @foreach (var lesson in group)
+                {
+                    var completed = Model.CompletedLessonIds.Contains(lesson.Id);
+                    <div class="col-md-6 col-xl-4">
+                        <article class="sl-topic-card @(completed ? "sl-lesson-done" : "")">
+                            <div class="sl-placeholder">@(string.IsNullOrWhiteSpace(lesson.VideoUrl) ? "[Lesson photo]" : "▶ Video lesson")</div>
+                            <div class="sl-topic-body">
+                                <div class="d-flex flex-wrap gap-2">
+                                    <span class="sl-badge sl-badge-muted">@lesson.Category</span>
+                                    @if (completed)
+                                    {
+                                        <span class="sl-badge sl-badge-pass">Learned ✓</span>
+                                    }
+                                </div>
+                                <h3 class="mt-1">@lesson.Title</h3>
+                                <p class="sl-clamp-3">@lesson.Description</p>
+                                <div class="mt-auto pt-3 d-flex flex-column gap-2">
+                                    @if (!string.IsNullOrWhiteSpace(lesson.VideoUrl))
+                                    {
+                                        <a class="btn btn-outline-primary" href="@lesson.VideoUrl" target="_blank"
+                                           rel="noopener noreferrer">Watch the video</a>
+                                    }
+                                    <form method="post" asp-page-handler="ToggleComplete">
+                                        <input type="hidden" name="lessonId" value="@lesson.Id" />
+                                        <input type="hidden" name="Search" value="@Model.Search" />
+                                        <input type="hidden" name="Category" value="@Model.Category" />
+                                        <input type="hidden" name="PageNumber" value="@Model.PageNumber" />
+                                        <button class="btn @(completed ? "btn-outline-secondary" : "btn-primary") w-100" type="submit">
+                                            @(completed ? "Learned ✓ · Undo" : "Mark as learned")
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+                }
+            </div>
+        </section>
+    }
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mt-4">
+    <p class="text-muted mb-0">
+        Showing @firstLesson–@lastLesson of @Model.TotalLessons lessons
+        @if (Model.TotalPages > 1)
+        {
+            <span>· Page @Model.PageNumber of @Model.TotalPages</span>
+        }
+    </p>
+    @if (Model.TotalPages > 1)
+    {
+        <nav aria-label="Lesson pages">
+            <ul class="pagination mb-0">
+                <li class="page-item @(Model.PageNumber <= 1 ? "disabled" : "")">
+                    @if (Model.PageNumber <= 1)
+                    {
+                        <span class="page-link">Previous</span>
+                    }
+                    else
+                    {
+                        <a class="page-link" asp-page="/Lessons" asp-route-pageNumber="@(Model.PageNumber - 1)"
+                           asp-route-search="@Model.Search" asp-route-category="@Model.Category">Previous</a>
+                    }
+                </li>
+                @for (var pageIndex = 1; pageIndex <= Model.TotalPages; pageIndex++)
+                {
+                    <li class="page-item @(pageIndex == Model.PageNumber ? "active" : "")">
+                        <a class="page-link" asp-page="/Lessons" asp-route-pageNumber="@pageIndex"
+                           asp-route-search="@Model.Search" asp-route-category="@Model.Category"
+                           aria-current="@(pageIndex == Model.PageNumber ? "page" : null)">@pageIndex</a>
+                    </li>
+                }
+                <li class="page-item @(Model.PageNumber >= Model.TotalPages ? "disabled" : "")">
+                    @if (Model.PageNumber >= Model.TotalPages)
+                    {
+                        <span class="page-link">Next</span>
+                    }
+                    else
+                    {
+                        <a class="page-link" asp-page="/Lessons" asp-route-pageNumber="@(Model.PageNumber + 1)"
+                           asp-route-search="@Model.Search" asp-route-category="@Model.Category">Next</a>
+                    }
+                </li>
+            </ul>
+        </nav>
+    }
+</div>

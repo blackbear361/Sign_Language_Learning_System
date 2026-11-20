@@ -1,0 +1,86 @@
+@page
+@model DashboardModel
+@{
+    ViewData["Title"] = "Your Journey";
+    var name = Model.UserName;
+    var hour = DateTime.Now.Hour;
+    var greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+}
+
+<div class="sl-page-header">
+    <h1>@greeting, @name</h1>
+    <p>Got five minutes? Let's learn a new sign.</p>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="sl-card h-100 d-flex flex-column gap-3">
+            <span class="sl-badge sl-badge-info align-self-start">Your journey so far</span>
+            <h2 class="h3 mb-0">@Model.CompletedLessons of @Model.TotalLessons lessons learned</h2>
+            <div class="d-flex align-items-center gap-3">
+                <div class="progress sl-progress flex-grow-1" role="progressbar" aria-label="Lesson progress" aria-valuenow="@Model.ProgressPercent" aria-valuemin="0" aria-valuemax="100">
+                    <div class="progress-bar" style="width: @Model.ProgressPercent%"></div>
+                </div>
+                <span class="fw-bold">@Model.ProgressPercent%</span>
+            </div>
+            <p class="text-muted mb-0">
+                @(Model.TotalLessons == 0 ? "New lessons are on the way — check back soon."
+                  : Model.CompletedLessons == Model.TotalLessons ? "You've learned every lesson. Amazing work!"
+                  : Model.CompletedLessons == 0 ? "Start with your first lesson today."
+                  : "Keep it going — one more lesson today?")
+            </p>
+            <div class="mt-auto">
+                <a asp-page="/Lessons" class="btn btn-primary">Continue learning</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="sl-card h-100 d-flex flex-column gap-3">
+            <span class="sl-badge sl-badge-practice align-self-start">Latest quiz</span>
+            @if (Model.LatestQuiz is { } latest)
+            {
+                <h2 class="h4 mb-0">@latest.Category · @latest.Score/@latest.TotalQuestions</h2>
+                <p class="text-muted mb-0">@(latest.Passed ? "Passed" : "Keep practising") · @latest.AttemptedAtUtc.ToLocalTime().ToString("d MMM, h:mm tt")</p>
+                <div class="mt-auto d-flex flex-wrap gap-2">
+                    <a asp-page="/QuizResult" asp-route-id="@latest.Id" class="btn btn-outline-primary">Review</a>
+                    <a asp-page="/Quiz" class="btn btn-link px-2">Another quiz</a>
+                </div>
+            }
+            else
+            {
+                <h2 class="h4 mb-0">No quizzes yet</h2>
+                <p class="text-muted mb-0">Your first one only takes two minutes.</p>
+                <div class="mt-auto">
+                    <a asp-page="/Quiz" class="btn btn-outline-primary">Try a quiz</a>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-sm-6 col-lg-3">
+        <a class="sl-card sl-tile" asp-page="/Lessons">
+            <span class="sl-tile-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h6a4 4 0 0 1 4 4v12a3 3 0 0 0-3-3H2z" /><path d="M22 4h-6a4 4 0 0 0-4 4v12a3 3 0 0 1 3-3h7z" /></svg></span>
+            <div><h3>Lessons</h3><p>Signs for everyday moments</p></div>
+        </a>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <a class="sl-card sl-tile" asp-page="/Quiz">
+            <span class="sl-tile-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><path d="M12 17h.01" /></svg></span>
+            <div><h3>Quizzes</h3><p>Try what you've learned</p></div>
+        </a>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <a class="sl-card sl-tile" asp-page="/MyResults">
+            <span class="sl-tile-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10" /><path d="M18 20V4" /><path d="M6 20v-4" /></svg></span>
+            <div><h3>My Results</h3><p>See how far you've come</p></div>
+        </a>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <a class="sl-card sl-tile" asp-page="/Profile">
+            <span class="sl-tile-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4" /><path d="M4 21v-1a7 7 0 0 1 16 0v1" /></svg></span>
+            <div><h3>Profile</h3><p>About you and your goals</p></div>
+        </a>
+    </div>
+</div>

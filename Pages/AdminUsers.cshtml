@@ -1,0 +1,80 @@
+@page
+@model Sign_Language_Learning_System.Pages.AdminUsersModel
+@{
+    ViewData["Title"] = "Manage Users";
+}
+
+<div class="sl-page-header d-flex flex-wrap justify-content-between align-items-end gap-3">
+    <div>
+        <span class="sl-badge sl-badge-admin mb-2">Administrator</span>
+        <h1>Users</h1>
+        <p>Review learner and administrator accounts.</p>
+    </div>
+    <a asp-page="/AdminDashboard" class="btn btn-outline-secondary">Back to admin</a>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+{
+    <div class="alert alert-success" role="status">@Model.StatusMessage</div>
+}
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+{
+    <div class="alert alert-danger" role="alert">@Model.ErrorMessage</div>
+}
+
+<div class="sl-table-wrap">
+    <table class="table table-hover sl-table">
+        <thead>
+            <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Email</th>
+                <th scope="col">Role</th>
+                <th scope="col">Status</th>
+                <th scope="col">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var user in Model.Users)
+            {
+                var isAdmin = Sign_Language_Learning_System.Data.UserRoles.IsAdministrator(user.Role);
+                var isActive = string.Equals(user.Status, "Active", StringComparison.OrdinalIgnoreCase);
+                <tr>
+                    <td class="fw-bold">@(string.IsNullOrWhiteSpace(user.FullName) ? "—" : user.FullName)</td>
+                    <td>@user.Email</td>
+                    <td>
+                        <span class="sl-badge @(isAdmin ? "sl-badge-info" : "sl-badge-pass")">
+                            @(isAdmin ? "Administrator" : "Learner")
+                        </span>
+                    </td>
+                    <td>
+                        <span class="sl-badge @(isActive ? "sl-badge-pass" : "sl-badge-danger")">
+                            @(isActive ? "Active" : "Deactive")
+                        </span>
+                    </td>
+                    <td>
+                        @if (user.Id == Model.CurrentUserId && isActive)
+                        {
+                            <button type="button" class="btn btn-sm btn-outline-secondary" disabled>
+                                Current account
+                            </button>
+                        }
+                        else
+                        {
+                            <form method="post" asp-page-handler="UpdateStatus"
+                                  asp-route-id="@user.Id" asp-route-status="@(isActive ? "Deactive" : "Active")">
+                                <button type="submit"
+                                        class="btn btn-sm @(isActive ? "btn-outline-danger" : "btn-outline-success")">
+                                    @(isActive ? "Deactivate" : "Activate")
+                                </button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+            @if (Model.Users.Count == 0)
+            {
+                <tr><td colspan="5" class="text-muted">No accounts found.</td></tr>
+            }
+        </tbody>
+    </table>
+</div>

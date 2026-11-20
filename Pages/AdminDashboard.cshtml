@@ -1,0 +1,32 @@
+@page
+@model AdminDashboardModel
+@{
+    ViewData["Title"] = "Admin Control Panel";
+}
+
+<div class="sl-page-header">
+    <span class="sl-badge sl-badge-admin mb-2">Administrator</span>
+    <h1>Admin control panel</h1>
+    <p>Look after SignLearn's learners, lessons and quiz questions.</p>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-6 col-lg-4">
+        <a class="sl-card sl-tile" asp-page="/AdminUsers">
+            <span class="sl-tile-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="4" /><path d="M2 21v-1a7 7 0 0 1 14 0v1" /><path d="M16 4a4 4 0 0 1 0 8" /><path d="M22 21v-1a7 7 0 0 0-4-6.3" /></svg></span>
+            <div><h3>Manage users</h3><p>Review learner and administrator accounts.</p></div>
+        </a>
+    </div>
+    <div class="col-md-6 col-lg-4">
+        <a class="sl-card sl-tile" asp-page="/AdminContent">
+            <span class="sl-tile-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h6a4 4 0 0 1 4 4v12a3 3 0 0 0-3-3H2z" /><path d="M22 4h-6a4 4 0 0 0-4 4v12a3 3 0 0 1 3-3h7z" /></svg></span>
+            <div><h3>Manage lessons</h3><p>Add, edit, publish or delete sign language lessons.</p></div>
+        </a>
+    </div>
+    <div class="col-md-6 col-lg-4">
+        <a class="sl-card sl-tile" href="/AdminQuizzes">
+            <span class="sl-tile-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><path d="M12 17h.01" /></svg></span>
+            <div><h3>Manage quiz questions</h3><p>Create, edit or delete questions for each topic quiz.</p></div>
+        </a>
+    </div>
+</div>

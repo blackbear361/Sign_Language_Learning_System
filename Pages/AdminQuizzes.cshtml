@@ -1,0 +1,269 @@
+@page
+@model Sign_Language_Learning_System.Pages.AdminQuizzesModel
+@using Sign_Language_Learning_System.Models
+@{
+    ViewData["Title"] = "Manage Quiz Questions";
+    var isEdit = Model.Input.Id != 0;
+    var filtering = !string.IsNullOrWhiteSpace(Model.Topic) || !string.IsNullOrWhiteSpace(Model.Search) || Model.MissingVideo;
+}
+
+<div class="sl-page-header d-flex flex-wrap justify-content-between align-items-end gap-3">
+    <div>
+        <h1>Quiz questions</h1>
+        <p>Create, edit and delete the questions learners answer in each topic quiz.</p>
+    </div>
+    <a asp-page="/AdminDashboard" class="btn btn-outline-secondary">Back to admin</a>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+{
+    <div class="alert alert-success" role="status">@Model.StatusMessage</div>
+}
+
+@if (Model.MissingVideoCount > 0 && !Model.MissingVideo)
+{
+    <div class="alert alert-info">
+        <b>@Model.MissingVideoCount @(Model.MissingVideoCount == 1 ? "question is" : "questions are") waiting for a sign video</b>, so learners can't see @(Model.MissingVideoCount == 1 ? "it" : "them") yet.
+        <a asp-page="/AdminQuizzes" asp-route-missingVideo="true" class="fw-bold">Show them</a>
+    </div>
+}
+
+@if (Model.LessonOptions.Count == 0)
+{
+    <div class="alert alert-info">Every question belongs to a lesson. <a asp-page="/AdminContent" class="fw-bold">Add a lesson first</a>, then come back to write its questions.</div>
+}
+
+<div class="row g-4">
+    <!-- Add / edit form -->
+    <div class="col-xl-5">
+        <div class="sl-card" id="question-form">
+            <h2 class="h4 mb-1">@(isEdit ? $"Edit question #{Model.Input.Id}" : "Add a question")</h2>
+            <p class="text-muted mb-3">Fields marked * are required.</p>
+
+            <form method="post" asp-page-handler="Save" enctype="multipart/form-data">
+                <input asp-for="Input.Id" type="hidden" />
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                <div class="mb-3">
+                    <label asp-for="Input.LessonId" class="form-label">Lesson *</label>
+                    <select asp-for="Input.LessonId" asp-items="Model.LessonOptions" class="form-select" aria-describedby="lessonHelp">
+                        <option value="0">Choose a lesson…</option>
+                    </select>
+                    <div id="lessonHelp" class="form-text">The question appears in the quiz for this lesson's topic.</div>
+                    <span asp-validation-for="Input.LessonId" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Input.QuestionText" class="form-label">Question *</label>
+                    <input asp-for="Input.QuestionText" class="form-control" placeholder="e.g. What does this sign mean?" />
+                    <span asp-validation-for="Input.QuestionText" class="text-danger"></span>
+                </div>
+
+                <fieldset class="mb-3 sl-image-fields">
+                    <legend class="form-label">Sign picture <span class="fw-normal text-muted">— optional, makes it a hand-sign question</span></legend>
+
+                    @if (!string.IsNullOrWhiteSpace(Model.Input.ImageUrl))
+                    {
+                        <div class="sl-current-image">
+                            <img src="@Model.Input.ImageUrl" alt="Current sign image" />
+                            <div class="form-check d-flex align-items-center gap-2">
+                                <input class="form-check-input mt-0" type="checkbox" asp-for="RemoveImage" />
+                                <label class="form-check-label" asp-for="RemoveImage">Remove this image</label>
+                            </div>
+                        </div>
+                    }
+
+                    <label asp-for="ImageFile" class="form-label mt-1">Upload a photo or GIF</label>
+                    <input asp-for="ImageFile" type="file" class="form-control" accept=".jpg,.jpeg,.png,.gif,.webp,image/*" aria-describedby="fileHelp" />
+                    <div id="fileHelp" class="form-text">JPG, PNG, GIF or WEBP, up to 5 MB. Uploading replaces the current image.</div>
+                    <span asp-validation-for="ImageFile" class="text-danger"></span>
+
+                    <label asp-for="Input.ImageUrl" class="form-label mt-3">…or paste an image link</label>
+                    <input asp-for="Input.ImageUrl" class="form-control" placeholder="https://…" />
+                    <span asp-validation-for="Input.ImageUrl" class="text-danger"></span>
+
+                    <label asp-for="Input.ImageCredit" class="form-label mt-3">Image credit</label>
+                    <input asp-for="Input.ImageCredit" class="form-control" placeholder="e.g. Photo: A. Rahman, CC BY-SA 4.0, Wikimedia Commons" aria-describedby="creditHelp" />
+                    <div id="creditHelp" class="form-text">Needed for most free images. Leave blank for your group's own photos.</div>
+                    <span asp-validation-for="Input.ImageCredit" class="text-danger"></span>
+                </fieldset>
+
+                <fieldset class="mb-3 sl-image-fields">
+                    <legend class="form-label">Sign video <span class="fw-normal text-muted">— for "What does this sign mean?" questions</span></legend>
+
+                    @if (!string.IsNullOrWhiteSpace(Model.Input.VideoUrl))
+                    {
+                        <div class="sl-current-image">
+                            @if (SignVideo.IsUploadedClip(Model.Input.VideoUrl))
+                            {
+                                <video src="@Model.Input.VideoUrl" class="sl-current-video" muted loop playsinline controls preload="metadata"></video>
+                            }
+                            else
+                            {
+                                <span class="sl-badge sl-badge-info">YouTube video linked</span>
+                            }
+                            <div class="form-check d-flex align-items-center gap-2">
+                                <input class="form-check-input mt-0" type="checkbox" asp-for="RemoveVideo" />
+                                <label class="form-check-label" asp-for="RemoveVideo">Remove this video</label>
+                            </div>
+                        </div>
+                    }
+
+                    <label asp-for="VideoFile" class="form-label mt-1">Upload a video clip</label>
+                    <input asp-for="VideoFile" type="file" class="form-control" accept=".mp4,.webm,video/mp4,video/webm" aria-describedby="videoHelp" />
+                    <div id="videoHelp" class="form-text">MP4 or WEBM, up to 25 MB. A 3–5 second clip of one sign works best. Uploading replaces the current video.</div>
+                    <span asp-validation-for="VideoFile" class="text-danger"></span>
+
+                    <label asp-for="Input.VideoUrl" class="form-label mt-3">…or paste a YouTube link</label>
+                    <input asp-for="Input.VideoUrl" class="form-control" placeholder="https://www.youtube.com/watch?v=…" />
+                    <span asp-validation-for="Input.VideoUrl" class="text-danger"></span>
+
+                    <div class="form-check d-flex align-items-start gap-2 mt-3">
+                        <input class="form-check-input mt-1" asp-for="Input.RequiresVideo" />
+                        <label class="form-check-label" asp-for="Input.RequiresVideo">Learners need the video to answer this. Hide it from quizzes until a video is added.</label>
+                    </div>
+                </fieldset>
+
+                <fieldset class="mb-3">
+                    <legend class="form-label">Answer options * <span class="fw-normal text-muted">— tick the correct one</span></legend>
+
+                    <div class="sl-option-row">
+                        <input type="radio" class="form-check-input" name="Input.CorrectOption" id="correctA" value="A" checked="@(Model.Input.CorrectOption == "A")" aria-label="Option A is the correct answer" />
+                        <label for="Input_OptionA" class="sl-option-key">A</label>
+                        <div class="flex-grow-1">
+                            <input asp-for="Input.OptionA" class="form-control" placeholder="Answer A" />
+                            <span asp-validation-for="Input.OptionA" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="sl-option-row">
+                        <input type="radio" class="form-check-input" name="Input.CorrectOption" id="correctB" value="B" checked="@(Model.Input.CorrectOption == "B")" aria-label="Option B is the correct answer" />
+                        <label for="Input_OptionB" class="sl-option-key">B</label>
+                        <div class="flex-grow-1">
+                            <input asp-for="Input.OptionB" class="form-control" placeholder="Answer B" />
+                            <span asp-validation-for="Input.OptionB" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="sl-option-row">
+                        <input type="radio" class="form-check-input" name="Input.CorrectOption" id="correctC" value="C" checked="@(Model.Input.CorrectOption == "C")" aria-label="Option C is the correct answer" />
+                        <label for="Input_OptionC" class="sl-option-key">C</label>
+                        <div class="flex-grow-1">
+                            <input asp-for="Input.OptionC" class="form-control" placeholder="Answer C" />
+                            <span asp-validation-for="Input.OptionC" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="sl-option-row">
+                        <input type="radio" class="form-check-input" name="Input.CorrectOption" id="correctD" value="D" checked="@(Model.Input.CorrectOption == "D")" aria-label="Option D is the correct answer" />
+                        <label for="Input_OptionD" class="sl-option-key">D</label>
+                        <div class="flex-grow-1">
+                            <input asp-for="Input.OptionD" class="form-control" placeholder="Answer D" />
+                            <span asp-validation-for="Input.OptionD" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <span asp-validation-for="Input.CorrectOption" class="text-danger"></span>
+                </fieldset>
+
+                <div class="d-flex flex-wrap gap-2">
+                    <button class="btn btn-primary" type="submit">@(isEdit ? "Save changes" : "Add question")</button>
+                    @if (isEdit)
+                    {
+                        <a asp-page="/AdminQuizzes" class="btn btn-outline-secondary">Cancel edit</a>
+                    }
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Question list -->
+    <div class="col-xl-7">
+        <form method="get" class="sl-card p-3 mb-3 d-flex flex-wrap align-items-end gap-2">
+            <div class="flex-grow-1" style="min-width: 200px">
+                <label for="searchBox" class="form-label">Search</label>
+                <input id="searchBox" type="search" name="search" value="@Model.Search" class="form-control" placeholder="Question, answer or lesson" />
+            </div>
+            <div>
+                <label for="topicFilter" class="form-label">Topic</label>
+                <select id="topicFilter" name="topic" class="form-select">
+                    <option value="">All topics</option>
+                    @foreach (var topic in Model.Topics)
+                    {
+                        if (string.Equals(topic, Model.Topic, StringComparison.OrdinalIgnoreCase))
+                        {
+                            <option value="@topic" selected>@topic</option>
+                        }
+                        else
+                        {
+                            <option value="@topic">@topic</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="form-check d-flex align-items-center gap-2 mb-2">
+                <input class="form-check-input mt-0" type="checkbox" id="missingVideo" name="missingVideo" value="true" checked="@Model.MissingVideo" />
+                <label class="form-check-label" for="missingVideo">Needs a video</label>
+            </div>
+            <button type="submit" class="btn btn-outline-primary">Filter</button>
+            @if (filtering)
+            {
+                <a asp-page="/AdminQuizzes" class="btn btn-link">Clear</a>
+            }
+        </form>
+
+        <div class="sl-table-wrap">
+            <table class="table table-hover sl-table">
+                <thead>
+                    <tr><th scope="col">Lesson</th><th scope="col">Question</th><th scope="col">Correct answer</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var question in Model.Questions)
+                    {
+                        <tr>
+                            <td>
+                                <span class="sl-badge sl-badge-muted">@question.Lesson.Category</span>
+                                <div class="fw-bold mt-1">@question.Lesson.Title</div>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center gap-3">
+                                    @if (!string.IsNullOrWhiteSpace(question.ImageUrl))
+                                    {
+                                        <img src="@question.ImageUrl" alt="" class="sl-thumb" loading="lazy" />
+                                    }
+                                    <span>
+                                        @question.QuestionText
+                                        @if (!string.IsNullOrWhiteSpace(question.VideoUrl))
+                                        {
+                                            <span class="sl-badge sl-badge-info ms-1">Video</span>
+                                        }
+                                        else if (question.RequiresVideo)
+                                        {
+                                            <span class="sl-badge sl-badge-danger ms-1">Needs video</span>
+                                        }
+                                    </span>
+                                </div>
+                            </td>
+                            <td class="fw-bold">@question.CorrectOption · @question.OptionText(question.CorrectOption)</td>
+                            <td class="text-end">
+                                <div class="d-flex gap-2 justify-content-end">
+                                    <a asp-page="/AdminQuizzes" asp-route-editId="@question.Id" asp-fragment="question-form" class="btn btn-sm btn-outline-primary">Edit</a>
+                                    <form method="post" asp-page-handler="Delete" onsubmit="return confirm('Delete this question? Past quiz results are kept.');">
+                                        <input type="hidden" name="id" value="@question.Id" />
+                                        <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    @if (Model.Questions.Count == 0)
+                    {
+                        <tr><td colspan="4" class="text-muted">@(filtering ? "No questions match your search." : "No questions yet. Add the first one using the form.")</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <p class="text-muted mt-2 mb-0">Showing @Model.Questions.Count of @Model.TotalQuestions questions</p>
+
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

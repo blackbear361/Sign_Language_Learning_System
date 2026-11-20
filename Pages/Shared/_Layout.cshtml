@@ -1,0 +1,123 @@
+@using Sign_Language_Learning_System.Data
+@{
+    // ---- Navigation state ----
+    var path = (Context.Request.Path.Value ?? "/").ToLowerInvariant();
+    bool IsActive(string route) => route == "/"
+        ? (path == "/" || path == "/index")
+        : path.StartsWith(route.ToLowerInvariant());
+    string NavClass(string route) => IsActive(route) ? "nav-link active" : "nav-link";
+    string? Current(string route) => IsActive(route) ? "page" : null;
+
+    var isSignedIn = Context.Session.GetInt32("UserId") is not null;
+    var userName = Context.Session.GetString("FullName") ?? "";
+    var isAdmin = isSignedIn && UserRoles.IsAdministrator(Context.Session.GetString("Role"));
+    var initials = userName.Length >= 2 ? userName.Substring(0, 2) : userName;
+
+    // A page can set ViewData["FullWidth"] = true to use edge-to-edge sections (e.g. the home page).
+    var fullWidth = ViewData["FullWidth"] as bool? ?? false;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - SignLearn</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/Sign_Language_Learning_System.styles.css" asp-append-version="true" />
+</head>
+<body>
+    <a class="visually-hidden-focusable btn btn-primary position-absolute m-2" style="z-index: 2000" href="#main">Skip to content</a>
+
+    <header class="sl-navbar">
+        <nav class="navbar navbar-expand-lg p-0" aria-label="Main">
+            <div class="container">
+                <a class="sl-brand" asp-area="" asp-page="@(isAdmin ? "/AdminDashboard" : isSignedIn ? "/Dashboard" : "/Index")">
+                    <span class="sl-logo" aria-hidden="true">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-4 0v5" /><path d="M14 10V4a2 2 0 0 0-4 0v6" /><path d="M10 10.5V6a2 2 0 0 0-4 0v8" /><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" /></svg>
+                    </span>
+                    <span>Sign<span class="sl-brand-accent">Learn</span></span>
+                    @if (isAdmin)
+                    {
+                        <span class="sl-badge sl-badge-admin">Admin</span>
+                    }
+                </a>
+
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#slNav"
+                        aria-controls="slNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse" id="slNav">
+                    <ul class="navbar-nav mx-auto gap-1 my-3 my-lg-0">
+                        @if (isAdmin)
+                        {
+                            <li class="nav-item"><a class="@NavClass("/admindashboard")" aria-current="@Current("/admindashboard")" asp-page="/AdminDashboard">Dashboard</a></li>
+                            <li class="nav-item"><a class="@NavClass("/adminusers")" aria-current="@Current("/adminusers")" asp-page="/AdminUsers">Users</a></li>
+                            <li class="nav-item"><a class="@NavClass("/admincontent")" aria-current="@Current("/admincontent")" asp-page="/AdminContent">Lessons</a></li>
+                            <li class="nav-item"><a class="@NavClass("/adminquizzes")" aria-current="@Current("/adminquizzes")" href="/AdminQuizzes">Quiz Questions</a></li>
+                        }
+                        else if (isSignedIn)
+                        {
+                            <li class="nav-item"><a class="@NavClass("/dashboard")" aria-current="@Current("/dashboard")" asp-page="/Dashboard">Your Journey</a></li>
+                            <li class="nav-item"><a class="@NavClass("/lessons")" aria-current="@Current("/lessons")" asp-page="/Lessons">Lessons</a></li>
+                            <li class="nav-item"><a class="@NavClass("/quiz")" aria-current="@Current("/quiz")" href="/Quiz">Quizzes</a></li>
+                            <li class="nav-item"><a class="@NavClass("/myresults")" aria-current="@Current("/myresults")" href="/MyResults">My Results</a></li>
+                            <li class="nav-item"><a class="@NavClass("/profile")" aria-current="@Current("/profile")" asp-page="/Profile">Profile</a></li>
+                        }
+                        else
+                        {
+                            <li class="nav-item"><a class="@NavClass("/")" aria-current="@Current("/")" asp-area="" asp-page="/Index">Home</a></li>
+                            @* <li class="nav-item"><a class="nav-link" href="/#topics">Topics</a></li> *@
+                            <li class="nav-item"><a class="nav-link" href="/#how">How it works</a></li>
+                        }
+                    </ul>
+
+                    <div class="d-flex flex-wrap align-items-center gap-2 pb-3 pb-lg-0">
+                        @if (isSignedIn)
+                        {
+                            <span class="sl-avatar" title="@userName" aria-hidden="true">@initials</span>
+                            <span class="d-lg-none fw-bold">@userName</span>
+                            <a class="btn btn-link sl-logout" asp-page="/Logout">Log out</a>
+                        }
+                        else
+                        {
+                            <a class="btn btn-outline-primary" asp-page="/Login">Log in</a>
+                            <a class="btn btn-accent" asp-page="/Signup">Sign up free</a>
+                        }
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main role="main" id="main" class="sl-main">
+        @if (fullWidth)
+        {
+            @RenderBody()
+        }
+        else
+        {
+            <div class="container pb-4">
+                @RenderBody()
+            </div>
+        }
+    </main>
+
+    <footer class="sl-footer">
+        <div class="container d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <span>&copy; 2026 SignLearn · Sign with the people you love</span>
+            <span><a asp-area="" asp-page="/Index">Home</a><a asp-area="" asp-page="/Privacy">Privacy</a></span>
+        </div>
+    </footer>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

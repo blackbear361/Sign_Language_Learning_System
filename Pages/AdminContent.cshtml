@@ -1,0 +1,197 @@
+@page
+@model Sign_Language_Learning_System.Pages.AdminContentModel
+@{
+    ViewData["Title"] = "Manage Lessons";
+    var firstLesson = Model.TotalLessons == 0 ? 0 : (Model.PageNumber - 1) * 10 + 1;
+    var lastLesson = Math.Min(Model.PageNumber * 10, Model.TotalLessons);
+}
+
+<div class="sl-page-header d-flex flex-wrap justify-content-between align-items-end gap-3">
+    <div>
+        <h1>Lessons</h1>
+        <p>Create lessons and choose when learners can see them.</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#lesson-form"
+                aria-expanded="@(Model.ShowForm ? "true" : "false")" aria-controls="lesson-form">
+            @(Model.Input.Id == 0 ? "Add a lesson" : "Edit lesson")
+        </button>
+        <a asp-page="/AdminDashboard" class="btn btn-outline-secondary">Back to admin</a>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+{
+    <div class="alert alert-success" role="status">@Model.StatusMessage</div>
+}
+
+<div class="collapse @(Model.ShowForm ? "show" : "") mb-4" id="lesson-form">
+    <div class="sl-card sl-card-lg">
+        <h2 class="h4 mb-3">@(Model.Input.Id == 0 ? "Add a lesson" : "Edit lesson")</h2>
+        <form method="post" asp-page-handler="Save">
+            <input asp-for="Input.Id" type="hidden" />
+            <input asp-for="Search" type="hidden" />
+            <input asp-for="Category" type="hidden" />
+            <input asp-for="PageNumber" type="hidden" />
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+            <div class="mb-3">
+                <label asp-for="Input.Title" class="form-label">Lesson title</label>
+                <input asp-for="Input.Title" class="form-control" placeholder="e.g. Thank you" />
+                <span asp-validation-for="Input.Title" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Input.Category" class="form-label">Category</label>
+                <input asp-for="Input.Category" class="form-control" placeholder="e.g. Greetings" />
+                <span asp-validation-for="Input.Category" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Input.Description" class="form-label">Lesson instructions</label>
+                <textarea asp-for="Input.Description" class="form-control" rows="5" placeholder="Hand shape, movement and when to use this sign"></textarea>
+                <span asp-validation-for="Input.Description" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Input.VideoUrl" class="form-label">Video URL (optional)</label>
+                <input asp-for="Input.VideoUrl" class="form-control" placeholder="https://…" />
+                <span asp-validation-for="Input.VideoUrl" class="text-danger"></span>
+            </div>
+            <div class="form-check mb-4 d-flex align-items-center gap-2">
+                <input asp-for="Input.IsPublished" class="form-check-input mt-0" />
+                <label asp-for="Input.IsPublished" class="form-check-label">Published and visible to learners</label>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <button class="btn btn-primary" type="submit">Save lesson</button>
+                @if (Model.Input.Id != 0)
+                {
+                    <a asp-page="/AdminContent" asp-route-search="@Model.Search" asp-route-category="@Model.Category"
+                       asp-route-pageNumber="@Model.PageNumber" class="btn btn-outline-secondary">Cancel edit</a>
+                }
+            </div>
+        </form>
+    </div>
+</div>
+
+<form method="get" class="sl-card mb-4">
+    <div class="row g-3 align-items-end">
+        <div class="col-md-7">
+            <label for="lesson-search" class="form-label">Search lessons</label>
+            <input id="lesson-search" type="search" name="Search" value="@Model.Search" class="form-control"
+                   placeholder="Search title, category or instructions" />
+        </div>
+        <div class="col-md-3">
+            <label for="lesson-category" class="form-label">Category</label>
+            <select id="lesson-category" name="Category" class="form-select">
+                <option value="">All categories</option>
+                @foreach (var category in Model.Categories)
+                {
+                    <option value="@category" selected="@(string.Equals(Model.Category, category, StringComparison.OrdinalIgnoreCase))">@category</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-grow-1">Search</button>
+            <a asp-page="/AdminContent" class="btn btn-outline-secondary">Clear</a>
+        </div>
+    </div>
+</form>
+
+@if (Model.Lessons.Count == 0)
+{
+    <div class="alert alert-light">
+        @(Model.TotalLessons == 0 && (string.IsNullOrWhiteSpace(Model.Search) && string.IsNullOrWhiteSpace(Model.Category))
+            ? "No lessons yet. Add your first one using the button above."
+            : "No lessons match your search and category filter.")
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var lesson in Model.Lessons)
+        {
+            <div class="col-lg-6">
+                <article class="sl-card h-100 p-4">
+                    <div class="d-flex flex-wrap justify-content-between gap-3 h-100">
+                        <div class="flex-grow-1" style="min-width: 0">
+                            <div class="d-flex flex-wrap gap-2 mb-2">
+                                <span class="sl-badge sl-badge-muted">@lesson.Category</span>
+                                <span class="sl-badge @(lesson.IsPublished ? "sl-badge-pass" : "sl-badge-practice")">
+                                    @(lesson.IsPublished ? "Published" : "Draft")
+                                </span>
+                            </div>
+                            <h2 class="h5 mb-1">@lesson.Title</h2>
+                            <p class="text-muted mb-1 sl-clamp-3">@lesson.Description</p>
+                            @if (!string.IsNullOrWhiteSpace(lesson.VideoUrl))
+                            {
+                                <a href="@lesson.VideoUrl" target="_blank" rel="noopener noreferrer">Open lesson video</a>
+                            }
+                        </div>
+                        <div class="d-flex flex-row flex-sm-column gap-2 align-self-start">
+                            <a asp-page="/AdminContent" asp-route-editId="@lesson.Id" asp-route-search="@Model.Search"
+                               asp-route-category="@Model.Category" asp-route-pageNumber="@Model.PageNumber"
+                               class="btn btn-sm btn-outline-primary">Edit</a>
+                            <form method="post" asp-page-handler="Delete"
+                                  onsubmit="return confirm('Delete this lesson and its progress records?');">
+                                <input type="hidden" name="id" value="@lesson.Id" />
+                                <input type="hidden" name="Search" value="@Model.Search" />
+                                <input type="hidden" name="Category" value="@Model.Category" />
+                                <input type="hidden" name="PageNumber" value="@Model.PageNumber" />
+                                <button class="btn btn-sm btn-outline-danger w-100" type="submit">Delete</button>
+                            </form>
+                        </div>
+                    </div>
+                </article>
+            </div>
+        }
+    </div>
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mt-4">
+    <p class="text-muted mb-0">
+        Showing @firstLesson–@lastLesson of @Model.TotalLessons lessons
+        @if (Model.TotalPages > 1)
+        {
+            <span>· Page @Model.PageNumber of @Model.TotalPages</span>
+        }
+    </p>
+    @if (Model.TotalPages > 1)
+    {
+        <nav aria-label="Lesson pages">
+            <ul class="pagination mb-0">
+                <li class="page-item @(Model.PageNumber <= 1 ? "disabled" : "")">
+                    @if (Model.PageNumber <= 1)
+                    {
+                        <span class="page-link">Previous</span>
+                    }
+                    else
+                    {
+                        <a class="page-link" asp-page="/AdminContent" asp-route-pageNumber="@(Model.PageNumber - 1)"
+                           asp-route-search="@Model.Search" asp-route-category="@Model.Category">Previous</a>
+                    }
+                </li>
+                @for (var pageIndex = 1; pageIndex <= Model.TotalPages; pageIndex++)
+                {
+                    <li class="page-item @(pageIndex == Model.PageNumber ? "active" : "")">
+                        <a class="page-link" asp-page="/AdminContent" asp-route-pageNumber="@pageIndex"
+                           asp-route-search="@Model.Search" asp-route-category="@Model.Category"
+                           aria-current="@(pageIndex == Model.PageNumber ? "page" : null)">@pageIndex</a>
+                    </li>
+                }
+                <li class="page-item @(Model.PageNumber >= Model.TotalPages ? "disabled" : "")">
+                    @if (Model.PageNumber >= Model.TotalPages)
+                    {
+                        <span class="page-link">Next</span>
+                    }
+                    else
+                    {
+                        <a class="page-link" asp-page="/AdminContent" asp-route-pageNumber="@(Model.PageNumber + 1)"
+                           asp-route-search="@Model.Search" asp-route-category="@Model.Category">Next</a>
+                    }
+                </li>
+            </ul>
+        </nav>
+    }
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

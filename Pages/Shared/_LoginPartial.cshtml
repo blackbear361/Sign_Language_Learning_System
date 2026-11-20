@@ -1,0 +1,33 @@
+@using Microsoft.AspNetCore.Http
+
+<ul class="navbar-nav">
+    @if (!string.IsNullOrEmpty(Context.Session.GetString("FullName")))
+    {
+        <li class="nav-item">
+            <a class="nav-link text-dark" asp-page="/Profile">
+                Hello @Context.Session.GetString("FullName")!
+            </a>
+        </li>
+        <li class="nav-item">
+            <form method="post" asp-page="/Logout">
+                <button type="submit"
+                        class="nav-link btn btn-link text-dark border-0">
+                    Logout
+                </button>
+            </form>
+        </li>
+    }
+    else
+    {
+        <li class="nav-item">
+            <a class="nav-link text-dark" asp-page="/Signup">
+                Register
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link text-dark" asp-page="/Login">
+                Login
+            </a>
+        </li>
+    }
+</ul>

@@ -1,0 +1,81 @@
+@page
+@model Sign_Language_Learning_System.Pages.MyResultsModel
+@{
+    ViewData["Title"] = "My Results";
+}
+
+<div class="sl-page-header d-flex flex-wrap justify-content-between align-items-end gap-3">
+    <div>
+        <h1>My results</h1>
+        <p>Every try counts — look how far you've come.</p>
+    </div>
+    <a asp-page="/Quiz" class="btn btn-primary">Take a quiz</a>
+</div>
+
+@if (Model.TotalAttempts == 0)
+{
+    <div class="sl-card sl-card-lg text-center">
+        <h2 class="h3">No quizzes yet</h2>
+        <p class="text-muted">Your first one only takes two minutes. Your scores will show up here.</p>
+        <a asp-page="/Quiz" class="btn btn-primary">Try your first quiz</a>
+    </div>
+}
+else
+{
+    <div class="row g-4 mb-4">
+        <div class="col-6 col-lg-3"><div class="sl-card h-100"><div class="sl-stat-value">@Model.TotalAttempts</div><div class="sl-stat-label">Quizzes taken</div></div></div>
+        <div class="col-6 col-lg-3"><div class="sl-card h-100"><div class="sl-stat-value">@(Model.AveragePercent)%</div><div class="sl-stat-label">Average score</div></div></div>
+        <div class="col-6 col-lg-3"><div class="sl-card h-100"><div class="sl-stat-value">@(Model.BestPercent)%</div><div class="sl-stat-label">Best score</div></div></div>
+        <div class="col-6 col-lg-3"><div class="sl-card h-100"><div class="sl-stat-value">@Model.TopicsPassed</div><div class="sl-stat-label">@(Model.TopicsPassed == 1 ? "Topic passed" : "Topics passed")</div></div></div>
+    </div>
+
+    <section class="sl-card">
+        <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+            <h2 class="h3 mb-0">Quiz history</h2>
+            <form method="get" class="d-flex align-items-end gap-2">
+                <div>
+                    <label for="topicFilter" class="form-label">Topic</label>
+                    <select id="topicFilter" name="topic" class="form-select" onchange="this.form.submit()">
+                        <option value="">All topics</option>
+                        @foreach (var topic in Model.Topics)
+                        {
+                            if (string.Equals(topic, Model.Topic, StringComparison.OrdinalIgnoreCase))
+                            {
+                                <option value="@topic" selected>@topic</option>
+                            }
+                            else
+                            {
+                                <option value="@topic">@topic</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <noscript><button type="submit" class="btn btn-outline-primary">Filter</button></noscript>
+            </form>
+        </div>
+
+        <div class="sl-table-wrap">
+            <table class="table table-hover sl-table">
+                <thead>
+                    <tr><th scope="col">Date</th><th scope="col">Topic</th><th scope="col">Score</th><th scope="col">Result</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var result in Model.Results)
+                    {
+                        <tr>
+                            <td>@result.AttemptedAtUtc.ToLocalTime().ToString("d MMM yyyy, h:mm tt")</td>
+                            <td class="fw-bold">@result.Category</td>
+                            <td>@result.Score / @result.TotalQuestions <span class="text-muted">(@(result.Percent)%)</span></td>
+                            <td><span class="sl-badge @(result.Passed ? "sl-badge-pass" : "sl-badge-practice")">@(result.Passed ? "Passed" : "Keep practising")</span></td>
+                            <td class="text-end"><a class="fw-bold" asp-page="/QuizResult" asp-route-id="@result.Id">Review</a></td>
+                        </tr>
+                    }
+                    @if (Model.Results.Count == 0)
+                    {
+                        <tr><td colspan="5" class="text-muted">No attempts for this topic yet.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+}
